@@ -1,12 +1,13 @@
 using System;
 using AltV.Net.Data;
 using AltV.Net.Elements.Entities;
+using AltV.Net.Enums;
 
 namespace AltV.Net.Mock
 {
     public class MockVehicle: MockEntity, IVehicle
     {   
-        public MockVehicle(IntPtr nativePointer, ushort id): base(nativePointer, EntityType.Vehicle, id)
+        public MockVehicle(IntPtr nativePointer, ushort id): base(nativePointer, BaseObjectType.Vehicle, id)
         {
         }
 
@@ -33,6 +34,10 @@ namespace AltV.Net.Mock
         public byte DirtLevel { get; set; }
         public Rgba NeonColor { get; set; }
         public byte ModKitsCount { get; }
+
+        public bool IsTireSmokeColorCustom { get; }
+        public bool IsNeonActive { get; }
+
         public byte GetMod(byte category)
         {
             return 0;
@@ -79,7 +84,7 @@ namespace AltV.Net.Mock
         public bool IsHandbrakeActive { get; }
         public byte HeadlightColor { get; set; }
         public bool SirenActive { get; set; }
-        public byte LockState { get; set; }
+        public VehicleLockState LockState { get; set; }
         public byte GetDoorState(byte doorId)
         {
             throw new NotImplementedException();

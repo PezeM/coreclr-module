@@ -45,6 +45,8 @@ namespace AltV.Net.Example
             vehicle.SetMod(0, 0);
             vehicle.GetMod(0);
             vehicle.GetModsCount(0);
+            vehicle.Dimension = 0;
+            vehicle.LockState = VehicleLockState.Locked;
             vehicle.PrimaryColorRgb = new Rgba
             {
                 r = 1,
@@ -353,7 +355,7 @@ namespace AltV.Net.Example
             //Do async processing here with the copy even when player got already removed
         }
 
-        private void OnEntityRemove(IEntity entity)
+        private void OnEntityRemove(IBaseObject entity)
         {
         }
 

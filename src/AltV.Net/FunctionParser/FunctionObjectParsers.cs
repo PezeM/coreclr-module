@@ -11,6 +11,10 @@ namespace AltV.Net.FunctionParser
     {
         public static object ParseObject(object value, Type type, FunctionTypeInfo typeInfo)
         {
+            if (MValueAdapters.FromObject(value, type, out var result))
+            {
+                return result;
+            }
             if (!type.IsValueType || type == FunctionTypes.String) return value;
             var defaultValue = typeInfo?.DefaultValue;
             return defaultValue ?? Activator.CreateInstance(type);
@@ -73,25 +77,25 @@ namespace AltV.Net.FunctionParser
             return ValidateEntityType(entity.Type, type, typeInfo) ? entity : null;
         }
 
-        public static bool ValidateEntityType(EntityType entityType, Type type, FunctionTypeInfo typeInfo)
+        public static bool ValidateEntityType(BaseObjectType baseObjectType, Type type, FunctionTypeInfo typeInfo)
         {
             if (type == FunctionTypes.Obj)
             {
                 return true;
             }
 
-            switch (entityType)
+            switch (baseObjectType)
             {
-                case EntityType.Blip:
+                case BaseObjectType.Blip:
                     return typeInfo?.IsBlip ??
                            type == FunctionTypes.Blip || type.GetInterfaces().Contains(FunctionTypes.Blip);
-                case EntityType.Player:
+                case BaseObjectType.Player:
                     return typeInfo?.IsPlayer ?? type == FunctionTypes.Player ||
                            type.GetInterfaces().Contains(FunctionTypes.Player);
-                case EntityType.Vehicle:
+                case BaseObjectType.Vehicle:
                     return typeInfo?.IsVehicle ?? type == FunctionTypes.Vehicle ||
                            type.GetInterfaces().Contains(FunctionTypes.Vehicle);
-                case EntityType.Checkpoint:
+                case BaseObjectType.Checkpoint:
                     return typeInfo?.IsCheckpoint ?? type == FunctionTypes.Checkpoint ||
                            type.GetInterfaces().Contains(FunctionTypes.Checkpoint);
                 default:
@@ -162,7 +166,14 @@ namespace AltV.Net.FunctionParser
                 }
                 else
                 {
-                    typedArray.SetValue(curr is IConvertible ? Convert.ChangeType(curr, elementType) : curr, i);
+                    if (MValueAdapters.FromObject(curr, elementType, out var result))
+                    {
+                        typedArray.SetValue(result, i);
+                    }
+                    else
+                    {
+                        typedArray.SetValue(curr is IConvertible ? Convert.ChangeType(curr, elementType) : curr, i);
+                    }
                 }
             }
 
@@ -218,13 +229,20 @@ namespace AltV.Net.FunctionParser
                 }
                 else
                 {
-                    if (obj is IConvertible)
+                    if (MValueAdapters.FromObject(obj, valueType, out var result))
                     {
-                        typedDictionary[key] = Convert.ChangeType(obj, valueType);
+                        typedDictionary[key] = result;
                     }
                     else
                     {
-                        typedDictionary[key] = obj;
+                        if (obj is IConvertible)
+                        {
+                            typedDictionary[key] = Convert.ChangeType(obj, valueType);
+                        }
+                        else
+                        {
+                            typedDictionary[key] = obj;
+                        }
                     }
                 }
             }

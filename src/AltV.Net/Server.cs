@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using AltV.Net.Data;
 using AltV.Net.Elements.Entities;
 using AltV.Net.Elements.Args;
@@ -10,22 +11,26 @@ namespace AltV.Net
     {
         public readonly IntPtr NativePointer;
 
+        private readonly IBaseBaseObjectPool baseBaseObjectPool;
+
         private readonly IBaseEntityPool baseEntityPool;
 
         private readonly IEntityPool<IPlayer> playerPool;
 
         private readonly IEntityPool<IVehicle> vehiclePool;
 
-        private readonly IEntityPool<IBlip> blipPool;
+        private readonly IBaseObjectPool<IBlip> blipPool;
 
-        private readonly IEntityPool<ICheckpoint> checkpointPool;
+        private readonly IBaseObjectPool<ICheckpoint> checkpointPool;
 
-        public Server(IntPtr nativePointer, IBaseEntityPool baseEntityPool, IEntityPool<IPlayer> playerPool,
+        public Server(IntPtr nativePointer, IBaseBaseObjectPool baseBaseObjectPool, IBaseEntityPool baseEntityPool,
+            IEntityPool<IPlayer> playerPool,
             IEntityPool<IVehicle> vehiclePool,
-            IEntityPool<IBlip> blipPool,
-            IEntityPool<ICheckpoint> checkpointPool)
+            IBaseObjectPool<IBlip> blipPool,
+            IBaseObjectPool<ICheckpoint> checkpointPool)
         {
             this.NativePointer = nativePointer;
+            this.baseBaseObjectPool = baseBaseObjectPool;
             this.baseEntityPool = baseEntityPool;
             this.playerPool = playerPool;
             this.vehiclePool = vehiclePool;
@@ -61,14 +66,18 @@ namespace AltV.Net
         public uint Hash(string stringToHash)
         {
             //return AltVNative.Server.Server_Hash(NativePointer, hash);
-            var stringToHashLowered = stringToHash.ToLower();
-            var length = stringToHashLowered.Length;
-            var chars = stringToHashLowered.ToCharArray();
-            uint hash;
-            uint i;
-            for (hash = i = 0; i < length; i++)
+            if (string.IsNullOrEmpty(stringToHash))
             {
-                hash += chars[i];
+                return 0;
+            }
+
+            var characters = Encoding.UTF8.GetBytes(stringToHash.ToLower());
+
+            uint hash = 0;
+
+            foreach (var t in characters)
+            {
+                hash += t;
                 hash += hash << 10;
                 hash ^= hash >> 6;
             }
@@ -76,6 +85,7 @@ namespace AltV.Net
             hash += hash << 3;
             hash ^= hash >> 11;
             hash += hash << 15;
+
             return hash;
         }
 
@@ -126,27 +136,24 @@ namespace AltV.Net
         public ICheckpoint CreateCheckpoint(IPlayer player, byte type, Position pos, float radius, float height,
             Rgba color)
         {
-            ushort id = default;
             checkpointPool.Create(AltVNative.Server.Server_CreateCheckpoint(NativePointer,
                 player?.NativePointer ?? IntPtr.Zero,
-                type, pos, radius, height, color, ref id), id, out var checkpoint);
+                type, pos, radius, height, color), out var checkpoint);
             return checkpoint;
         }
 
         public IBlip CreateBlip(IPlayer player, byte type, Position pos)
         {
-            ushort id = default;
             blipPool.Create(AltVNative.Server.Server_CreateBlip(NativePointer, player?.NativePointer ?? IntPtr.Zero,
-                type, pos, ref id), id, out var blip);
+                type, pos), out var blip);
             return blip;
         }
 
         public IBlip CreateBlip(IPlayer player, byte type, IEntity entityAttach)
         {
-            ushort id = default;
             blipPool.Create(AltVNative.Server.Server_CreateBlipAttached(NativePointer,
                 player?.NativePointer ?? IntPtr.Zero,
-                type, entityAttach.NativePointer, ref id), id, out var blip);
+                type, entityAttach.NativePointer), out var blip);
             return blip;
         }
 
@@ -155,6 +162,30 @@ namespace AltV.Net
             if (entity.Exists)
             {
                 AltVNative.Server.Server_RemoveEntity(NativePointer, entity.NativePointer);
+            }
+        }
+
+        public void RemoveBlip(IBlip blip)
+        {
+            if (blip.Exists)
+            {
+                AltVNative.Server.Server_RemoveBlip(NativePointer, blip.NativePointer);
+            }
+        }
+
+        public void RemoveCheckpoint(ICheckpoint checkpoint)
+        {
+            if (checkpoint.Exists)
+            {
+                AltVNative.Server.Server_RemoveCheckpoint(NativePointer, checkpoint.NativePointer);
+            }
+        }
+
+        public void RemoveVehicle(IVehicle vehicle)
+        {
+            if (vehicle.Exists)
+            {
+                AltVNative.Server.Server_RemoveVehicle(NativePointer, vehicle.NativePointer);
             }
         }
 
